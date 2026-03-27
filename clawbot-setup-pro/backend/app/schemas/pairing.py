@@ -21,3 +21,9 @@ class DeviceLogIn(BaseModel):
     level: str = "info"  # info|warn|error
     message: str
     ts: str | None = None
+
+
+class DeviceLogOut(BaseModel):
+    level: str
+    message: str
+    ts: str
