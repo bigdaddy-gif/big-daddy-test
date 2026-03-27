@@ -1,7 +1,12 @@
+import uuid
+
+import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.db.session import get_db
+from app.models.entitlement import Entitlement
 from app.schemas.billing import CheckoutSessionRequest, CheckoutSessionResponse
 from app.services.stripe_service import StripeService
 
@@ -29,8 +34,47 @@ def create_checkout_session(payload: CheckoutSessionRequest, db: Session = Depen
 
 
 @router.post("/webhook")
-async def stripe_webhook(request: Request):
-    # TODO: verify signature + upsert entitlements
-    # placeholder so mobile/backend contract exists
-    _ = await request.body()
+async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
+    if not settings.stripe_webhook_secret:
+        raise HTTPException(status_code=500, detail="STRIPE_WEBHOOK_SECRET not set")
+
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    if not sig_header:
+        raise HTTPException(status_code=400, detail="missing_signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload=payload,
+            sig_header=sig_header,
+            secret=settings.stripe_webhook_secret,
+        )
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid_signature")
+
+    if event.get("type") == "checkout.session.completed":
+        session = event["data"]["object"]
+        metadata = session.get("metadata") or {}
+        user_id = metadata.get("user_id")
+        sku = metadata.get("sku", "setup_1000")
+
+        if user_id:
+            ent: Entitlement | None = (
+                db.query(Entitlement)
+                .filter(Entitlement.user_id == user_id, Entitlement.sku == sku)
+                .one_or_none()
+            )
+            if ent:
+                ent.active = True
+            else:
+                db.add(
+                    Entitlement(
+                        id=str(uuid.uuid4()),
+                        user_id=user_id,
+                        sku=sku,
+                        active=True,
+                    )
+                )
+            db.commit()
+
     return {"ok": True}
