@@ -21,8 +21,14 @@ def create_checkout_session(
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    # TODO: look up user email in DB
-    user_email = "dev@example.com"
+    # Look up user email in DB
+    from app.models.user import User
+
+    user: User | None = db.query(User).filter(User.id == user_id).one_or_none()
+    if not user:
+        raise HTTPException(status_code=401, detail="user_not_found")
+
+    user_email = user.email
 
     try:
         url = StripeService().create_checkout_session(
