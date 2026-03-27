@@ -2,6 +2,8 @@ import uuid
 
 import stripe
 from fastapi import APIRouter, Depends, HTTPException, Request
+
+from app.services.auth import get_current_user_id
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -14,10 +16,12 @@ router = APIRouter(prefix="/billing", tags=["billing"])
 
 
 @router.post("/checkout-session", response_model=CheckoutSessionResponse)
-def create_checkout_session(payload: CheckoutSessionRequest, db: Session = Depends(get_db)):
-    # TODO: require auth; look up user
-    # Temporary stub user
-    user_id = "dev-user"
+def create_checkout_session(
+    payload: CheckoutSessionRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    # TODO: look up user email in DB
     user_email = "dev@example.com"
 
     try:
