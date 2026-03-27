@@ -98,14 +98,52 @@ def activate_device(
     return DeviceActivateResponse(device_id=device_id, device_token=device_token)
 
 
+@router.post("/{device_id}/heartbeat")
+def heartbeat(
+    device_id: str,
+    authed_device_id: str = Depends(get_current_device_id),
+    db: Session = Depends(get_db),
+):
+    if authed_device_id != device_id:
+        raise HTTPException(status_code=403, detail="device_mismatch")
+
+    device: Device | None = db.query(Device).filter(Device.id == device_id).one_or_none()
+    if not device:
+        raise HTTPException(status_code=404, detail="device_not_found")
+
+    device.status = "online"
+    device.last_seen_at = datetime.now(timezone.utc)
+    db.commit()
+
+    return {"ok": True, "heartbeat_seconds": 30}
+
+
 @router.post("/{device_id}/logs")
 def post_logs(
     device_id: str,
     payload: DeviceLogIn,
     authed_device_id: str = Depends(get_current_device_id),
+    db: Session = Depends(get_db),
 ):
     if authed_device_id != device_id:
         raise HTTPException(status_code=403, detail="device_mismatch")
 
-    # TODO: persist logs
+    from app.models.device_log import DeviceLog
+
+    db.add(
+        DeviceLog(
+            id=str(uuid.uuid4()),
+            device_id=device_id,
+            level=payload.level,
+            message=payload.message,
+        )
+    )
+    # also update presence
+    device: Device | None = db.query(Device).filter(Device.id == device_id).one_or_none()
+    if device:
+        device.status = "online"
+        device.last_seen_at = datetime.now(timezone.utc)
+
+    db.commit()
+
     return {"ok": True}
