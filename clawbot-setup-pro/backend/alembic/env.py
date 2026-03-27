@@ -16,6 +16,8 @@ from app.models.user import User  # noqa
 from app.models.entitlement import Entitlement  # noqa
 from app.models.device import Device  # noqa
 from app.models.magic_link import MagicLinkToken  # noqa
+from app.models.pairing_code import PairingCode  # noqa
+from app.models.device_token import DeviceToken  # noqa
 
 target_metadata = Base.metadata
 
