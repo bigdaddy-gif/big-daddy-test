@@ -17,17 +17,18 @@ docker compose up --build
 
 API: http://localhost:8000
 
-## 2) Authenticate (magic link)
-MVP shortcut: call endpoints directly.
+## 2) Authenticate (dev login → JWT)
+This is the fastest way to test end-to-end.
 
-1) Request magic link:
 ```bash
-curl -s -X POST http://localhost:8000/v1/auth/magic-link \
+JWT=$(curl -s -X POST http://localhost:8000/v1/dev/login \
   -H 'content-type: application/json' \
-  -d '{"email":"you@example.com"}'
+  -d '{"email":"you@example.com"}' | python3 -c 'import sys, json; print(json.load(sys.stdin)["access_token"])')
+
+echo "$JWT"
 ```
 
-2) For now, the API sends a link via Resend if configured. If not configured, you can still test by grabbing the token from logs once you wire dev-mode token output.
+> Note: `/v1/dev/login` only works when `JWT_SECRET` is the default dev value (`dev-secret-change-me`).
 
 ## 3) Pair device
 Create a pairing code (requires JWT):
