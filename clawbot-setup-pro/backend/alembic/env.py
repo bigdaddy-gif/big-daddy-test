@@ -19,6 +19,8 @@ from app.models.magic_link import MagicLinkToken  # noqa
 from app.models.pairing_code import PairingCode  # noqa
 from app.models.device_token import DeviceToken  # noqa
 from app.models.device_log import DeviceLog  # noqa
+from app.models.job import Job  # noqa
+from app.models.device_command import DeviceCommand  # noqa
 
 target_metadata = Base.metadata
 
