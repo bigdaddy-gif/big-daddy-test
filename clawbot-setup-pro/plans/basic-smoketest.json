@@ -1,0 +1,12 @@
+{
+  "steps": [
+    {
+      "name": "Print working directory",
+      "cmd": "pwd"
+    },
+    {
+      "name": "Echo hello",
+      "cmd": "echo 'hello from clawbot-setup-pro'"
+    }
+  ]
+}
